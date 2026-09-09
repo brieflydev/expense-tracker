@@ -1,0 +1,17 @@
+{
+  "name": "expense-tracker",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev -w @expense-tracker/frontend",
+    "dev:backend": "npm run dev -w @expense-tracker/backend",
+    "build": "npm run build -w @expense-tracker/backend && npm run build -w @expense-tracker/frontend",
+    "lint": "npm run lint -w @expense-tracker/backend && npm run lint -w @expense-tracker/frontend",
+    "typecheck": "npm run typecheck -w @expense-tracker/backend && npm run typecheck -w @expense-tracker/frontend"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
