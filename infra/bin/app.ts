@@ -3,6 +3,7 @@ import * as cdk from 'aws-cdk-lib';
 import { ComputeStack } from '../lib/compute-stack';
 import { DataStack } from '../lib/data-stack';
 import { DnsStack } from '../lib/dns-stack';
+import { GitHubOidcStack } from '../lib/github-oidc-stack';
 import { NetworkStack } from '../lib/network-stack';
 
 const app = new cdk.App();
@@ -18,6 +19,13 @@ const apiHostname = `api.${domainName}`;
 const hostedZoneId = 'Z08333773CBXERA1YVDZO';
 const imageTag = String(app.node.tryGetContext('imageTag') ?? 'latest');
 const desiredCount = Number(app.node.tryGetContext('desiredCount') ?? 0);
+
+new GitHubOidcStack(app, 'ExpenseTrackerGitHubOidc', {
+  env,
+  githubOwner: 'brieflydev',
+  githubRepo: 'expense-tracker',
+  roleName: 'GitHubActionsExpenseTracker',
+});
 
 const network = new NetworkStack(app, 'ExpenseTrackerNetwork', { env });
 

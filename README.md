@@ -73,7 +73,11 @@ AWS CDK lives in [`infra/`](infra/). Deployed stacks:
 npm run cdk:deploy
 ```
 
-ECS services start at `desiredCount=0` until images are pushed (next: GitHub Actions).
+ECS services start at `desiredCount=0` until images are pushed.
+
+CI/CD uses GitHub Actions with AWS OIDC (no long-lived keys). Role ARN:
+
+`arn:aws:iam::565393069879:role/GitHubActionsExpenseTracker`
 
 ## Docker
 

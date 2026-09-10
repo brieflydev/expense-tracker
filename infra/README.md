@@ -6,6 +6,7 @@ TypeScript CDK app that provisions the expense tracker on AWS.
 
 | Stack | Resources |
 |---|---|
+| `ExpenseTrackerGitHubOidc` | GitHub Actions OIDC provider + deploy IAM role |
 | `ExpenseTrackerNetwork` | VPC (public + isolated), ALB/ECS/DB security groups |
 | `ExpenseTrackerData` | RDS PostgreSQL 16 (`db.t4g.micro`), Secrets Manager creds |
 | `ExpenseTrackerDns` | ACM cert + DNS validation for `app` / `api.briefly-learn.com` |
