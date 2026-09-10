@@ -6,7 +6,7 @@ Monorepo for a TypeScript expense tracker: React frontend, Express API, AWS CDK 
 
 ```
 apps/
-  frontend/   # Vite + React + TypeScript
+  frontend/   # Vite + React + MUI + TanStack Query + Recharts
   backend/    # Express + TypeScript + Prisma + PostgreSQL
 ```
 
@@ -24,7 +24,7 @@ cp apps/backend/.env.example apps/backend/.env
 # edit DATABASE_URL if needed
 
 npm install
-npm run db:migrate -w @expense-tracker/backend
+npm run db:migrate
 ```
 
 ## Develop
@@ -35,6 +35,17 @@ Run API and UI in two terminals:
 npm run dev:backend   # http://localhost:4000
 npm run dev:frontend  # http://localhost:5173 (proxies /api → backend)
 ```
+
+Then open the UI, register an account, add expenses, and check the dashboard charts.
+
+## Frontend routes
+
+| Path | Description |
+|---|---|
+| `/login` | Sign in |
+| `/register` | Create account |
+| `/` | Dashboard (totals + charts) |
+| `/expenses` | Search, filter, CRUD expenses |
 
 ## API (current)
 
