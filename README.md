@@ -60,6 +60,22 @@ Then open the UI, register an account, add expenses, and check the dashboard cha
 | GET/PATCH/DELETE | `/api/expenses/:id` | yes | Read / update / delete |
 | GET | `/api/dashboard/summary` | yes | Totals by category/month |
 
+## Docker
+
+Images are built from the repo root (npm workspaces). Local container runtime is unavailable on this workshop VM; builds will run in GitHub Actions / ECS.
+
+```bash
+# Backend (Node + Prisma migrate on start)
+docker build -f apps/backend/Dockerfile -t expense-tracker-backend .
+
+# Frontend (Nginx SPA); bake API origin at build time
+docker build -f apps/frontend/Dockerfile \
+  --build-arg VITE_API_URL=https://api.briefly-learn.com \
+  -t expense-tracker-frontend .
+```
+
+`docker-compose.yml` is a reference stack (Postgres + both apps) for environments that can run Docker.
+
 ## Scripts
 
 | Command | Description |
@@ -67,4 +83,5 @@ Then open the UI, register an account, add expenses, and check the dashboard cha
 | `npm run build` | Build backend and frontend |
 | `npm run typecheck` | Typecheck both apps |
 | `npm run lint` | Lint both apps |
-| `npm run db:migrate -w @expense-tracker/backend` | Run Prisma migrations |
+| `npm run db:migrate` | Run Prisma migrations (dev) |
+| `npm run db:migrate:deploy -w @expense-tracker/backend` | Apply migrations (prod) |

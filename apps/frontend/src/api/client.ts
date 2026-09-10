@@ -1,6 +1,13 @@
 const ACCESS_KEY = 'et_access_token';
 const REFRESH_KEY = 'et_refresh_token';
 
+/** Empty in local dev (Vite proxy). Set VITE_API_URL in production builds. */
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? '';
+
+function apiUrl(path: string): string {
+  return `${API_BASE}${path}`;
+}
+
 export function getAccessToken(): string | null {
   return localStorage.getItem(ACCESS_KEY);
 }
@@ -44,7 +51,7 @@ async function tryRefresh(): Promise<boolean> {
     return false;
   }
 
-  const res = await fetch('/api/auth/refresh', {
+  const res = await fetch(apiUrl('/api/auth/refresh'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken }),
@@ -78,7 +85,7 @@ export async function apiRequest<T>(
     }
   }
 
-  const res = await fetch(path, {
+  const res = await fetch(apiUrl(path), {
     method: options.method ?? (options.body ? 'POST' : 'GET'),
     headers,
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
