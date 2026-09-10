@@ -9,7 +9,9 @@
     "dev:backend": "npm run dev -w @expense-tracker/backend",
     "build": "npm run build -w @expense-tracker/backend && npm run build -w @expense-tracker/frontend",
     "lint": "npm run lint -w @expense-tracker/backend && npm run lint -w @expense-tracker/frontend",
-    "typecheck": "npm run typecheck -w @expense-tracker/backend && npm run typecheck -w @expense-tracker/frontend"
+    "typecheck": "npm run typecheck -w @expense-tracker/backend && npm run typecheck -w @expense-tracker/frontend",
+    "db:migrate": "npm run db:migrate -w @expense-tracker/backend",
+    "db:generate": "npm run db:generate -w @expense-tracker/backend"
   },
   "engines": {
     "node": ">=20"

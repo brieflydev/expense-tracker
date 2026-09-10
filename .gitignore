@@ -9,3 +9,4 @@ coverage/
 *.tsbuildinfo
 .cdk.staging/
 cdk.out/
+apps/backend/src/generated/
