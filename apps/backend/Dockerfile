@@ -18,7 +18,11 @@ COPY --from=deps /app/apps/backend/package.json ./apps/backend/package.json
 COPY apps/backend ./apps/backend
 
 WORKDIR /app/apps/backend
-RUN npx prisma generate && npx tsc -p tsconfig.json && cp -r src/generated dist/generated
+# prisma generate reads prisma.config.ts which requires DATABASE_URL; value is unused at generate-time.
+RUN DATABASE_URL="postgresql://build:build@127.0.0.1:5432/expense_tracker?schema=public" \
+  npx prisma generate \
+  && npx tsc -p tsconfig.json \
+  && cp -r src/generated dist/generated
 
 FROM node:22-alpine AS runner
 WORKDIR /app
