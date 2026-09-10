@@ -1,6 +1,16 @@
 #!/bin/sh
 set -e
 
+if [ -n "${DB_HOST:-}" ]; then
+  DATABASE_URL="$(node -e "const {DB_USER:u,DB_PASSWORD:p,DB_HOST:h,DB_PORT:port,DB_NAME:db}=process.env; if(!u||!p||!h||!port||!db) process.exit(1); console.log('postgresql://'+encodeURIComponent(u)+':'+encodeURIComponent(p)+'@'+h+':'+port+'/'+db+'?schema=public')")"
+  export DATABASE_URL
+fi
+
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "DATABASE_URL is not set" >&2
+  exit 1
+fi
+
 echo "Running database migrations..."
 npx prisma migrate deploy
 

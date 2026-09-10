@@ -9,4 +9,7 @@ coverage/
 *.tsbuildinfo
 .cdk.staging/
 cdk.out/
+infra/cdk.out/
+infra/dist/
+infra/cdk-outputs.json
 apps/backend/src/generated/

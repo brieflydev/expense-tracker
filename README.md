@@ -60,6 +60,21 @@ Then open the UI, register an account, add expenses, and check the dashboard cha
 | GET/PATCH/DELETE | `/api/expenses/:id` | yes | Read / update / delete |
 | GET | `/api/dashboard/summary` | yes | Totals by category/month |
 
+## Infrastructure
+
+AWS CDK lives in [`infra/`](infra/). Deployed stacks:
+
+- VPC + security groups (no NAT)
+- RDS PostgreSQL 16
+- ACM + Route53 for `app.briefly-learn.com` / `api.briefly-learn.com`
+- ECR + ECS Fargate + ALB (HTTPS)
+
+```bash
+npm run cdk:deploy
+```
+
+ECS services start at `desiredCount=0` until images are pushed (next: GitHub Actions).
+
 ## Docker
 
 Images are built from the repo root (npm workspaces). Local container runtime is unavailable on this workshop VM; builds will run in GitHub Actions / ECS.

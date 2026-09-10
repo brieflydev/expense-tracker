@@ -2,16 +2,19 @@
   "name": "expense-tracker",
   "private": true,
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "infra"
   ],
   "scripts": {
     "dev:frontend": "npm run dev -w @expense-tracker/frontend",
     "dev:backend": "npm run dev -w @expense-tracker/backend",
     "build": "npm run build -w @expense-tracker/backend && npm run build -w @expense-tracker/frontend",
     "lint": "npm run lint -w @expense-tracker/backend && npm run lint -w @expense-tracker/frontend",
-    "typecheck": "npm run typecheck -w @expense-tracker/backend && npm run typecheck -w @expense-tracker/frontend",
+    "typecheck": "npm run typecheck -w @expense-tracker/backend && npm run typecheck -w @expense-tracker/frontend && npm run typecheck -w @expense-tracker/infra",
     "db:migrate": "npm run db:migrate -w @expense-tracker/backend",
-    "db:generate": "npm run db:generate -w @expense-tracker/backend"
+    "db:generate": "npm run db:generate -w @expense-tracker/backend",
+    "cdk": "npm run cdk -w @expense-tracker/infra --",
+    "cdk:deploy": "npm run deploy -w @expense-tracker/infra"
   },
   "engines": {
     "node": ">=20"
