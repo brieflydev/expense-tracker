@@ -13,8 +13,8 @@ FROM node:22-alpine AS build
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/backend/node_modules ./apps/backend/node_modules
-COPY package.json package-lock.json ./
+COPY --from=deps /app/package.json /app/package-lock.json ./
+COPY --from=deps /app/apps/backend/package.json ./apps/backend/package.json
 COPY apps/backend ./apps/backend
 
 WORKDIR /app/apps/backend
@@ -29,8 +29,7 @@ ENV PORT=4000
 RUN addgroup -S app && adduser -S app -G app
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/backend/node_modules ./apps/backend/node_modules
-COPY package.json package-lock.json ./
+COPY --from=deps /app/package.json /app/package-lock.json ./
 COPY apps/backend/package.json ./apps/backend/package.json
 COPY apps/backend/prisma ./apps/backend/prisma
 COPY apps/backend/prisma.config.ts ./apps/backend/prisma.config.ts
