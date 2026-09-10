@@ -27,17 +27,20 @@ export class GitHubOidcStack extends cdk.Stack {
       clientIds: ['sts.amazonaws.com'],
     });
 
+    const principal = new iam.OpenIdConnectPrincipal(this.provider, {
+      StringEquals: {
+        'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
+      },
+      StringLike: {
+        'token.actions.githubusercontent.com:sub': repoSub,
+      },
+    });
+
     this.role = new iam.Role(this, 'DeployRole', {
       roleName,
       description: `OIDC deploy role for ${props.githubOwner}/${props.githubRepo}`,
-      assumedBy: new iam.OpenIdConnectPrincipal(this.provider, {
-        StringEquals: {
-          'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
-        },
-        StringLike: {
-          'token.actions.githubusercontent.com:sub': repoSub,
-        },
-      }),
+      // TagSession is required by aws-actions/configure-aws-credentials@v4
+      assumedBy: principal.withSessionTags(),
       // Workshop convenience: full deploy surface for CDK + ECR + ECS.
       // Tighten later for production.
       managedPolicies: [
