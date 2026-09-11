@@ -10,6 +10,8 @@ import {
   storeRefreshToken,
   verifyPassword,
 } from '../lib/auth.js';
+import { clearAuthCookies, setAuthCookies } from '../lib/cookies.js';
+import { REFRESH_COOKIE } from '../lib/env.js';
 import { prisma } from '../lib/prisma.js';
 import { HttpError } from '../middleware/error.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -26,11 +28,25 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-const refreshSchema = z.object({
-  refreshToken: z.string().min(1),
-});
-
 export const authRouter = Router();
+
+function readRefreshToken(req: {
+  body?: unknown;
+  cookies?: Record<string, unknown>;
+}): string | null {
+  const fromBody =
+    typeof req.body === 'object' &&
+    req.body !== null &&
+    'refreshToken' in req.body &&
+    typeof (req.body as { refreshToken: unknown }).refreshToken === 'string'
+      ? (req.body as { refreshToken: string }).refreshToken
+      : null;
+  const fromCookie =
+    typeof req.cookies?.[REFRESH_COOKIE] === 'string'
+      ? (req.cookies[REFRESH_COOKIE] as string)
+      : null;
+  return fromBody || fromCookie;
+}
 
 authRouter.post('/register', async (req, res, next) => {
   try {
@@ -54,12 +70,9 @@ authRouter.post('/register', async (req, res, next) => {
     const accessToken = signAccessToken({ sub: user.id, email: user.email });
     const refreshToken = createRefreshTokenValue();
     await storeRefreshToken(user.id, refreshToken);
+    setAuthCookies(res, accessToken, refreshToken);
 
-    res.status(201).json({
-      user: publicUser(user),
-      accessToken,
-      refreshToken,
-    });
+    res.status(201).json({ user: publicUser(user) });
   } catch (err) {
     next(err);
   }
@@ -78,12 +91,9 @@ authRouter.post('/login', async (req, res, next) => {
     const accessToken = signAccessToken({ sub: user.id, email: user.email });
     const refreshToken = createRefreshTokenValue();
     await storeRefreshToken(user.id, refreshToken);
+    setAuthCookies(res, accessToken, refreshToken);
 
-    res.json({
-      user: publicUser(user),
-      accessToken,
-      refreshToken,
-    });
+    res.json({ user: publicUser(user) });
   } catch (err) {
     next(err);
   }
@@ -91,9 +101,14 @@ authRouter.post('/login', async (req, res, next) => {
 
 authRouter.post('/refresh', async (req, res, next) => {
   try {
-    const { refreshToken } = refreshSchema.parse(req.body);
+    const refreshToken = readRefreshToken(req);
+    if (!refreshToken) {
+      throw new HttpError(401, 'Missing refresh token');
+    }
+
     const rotated = await rotateRefreshToken(refreshToken);
     if (!rotated) {
+      clearAuthCookies(res);
       throw new HttpError(401, 'Invalid or expired refresh token');
     }
 
@@ -101,11 +116,9 @@ authRouter.post('/refresh', async (req, res, next) => {
       sub: rotated.userId,
       email: rotated.email,
     });
+    setAuthCookies(res, accessToken, rotated.newRefreshToken);
 
-    res.json({
-      accessToken,
-      refreshToken: rotated.newRefreshToken,
-    });
+    res.status(204).send();
   } catch (err) {
     next(err);
   }
@@ -113,8 +126,11 @@ authRouter.post('/refresh', async (req, res, next) => {
 
 authRouter.post('/logout', async (req, res, next) => {
   try {
-    const { refreshToken } = refreshSchema.parse(req.body);
-    await revokeRefreshToken(refreshToken);
+    const refreshToken = readRefreshToken(req);
+    if (refreshToken) {
+      await revokeRefreshToken(refreshToken);
+    }
+    clearAuthCookies(res);
     res.status(204).send();
   } catch (err) {
     next(err);

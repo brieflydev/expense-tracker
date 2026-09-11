@@ -47,15 +47,19 @@ export type ExpenseListResponse = {
   totalPages: number;
 };
 
-export type DashboardSummary = {
+export type DashboardCurrencySummary = {
+  currency: string;
   total: number;
   count: number;
   byCategory: Array<{ category: string; amount: number }>;
   byMonth: Array<{ month: string; amount: number }>;
 };
 
+export type DashboardSummary = {
+  currencies: DashboardCurrencySummary[];
+  primary: DashboardCurrencySummary | null;
+};
+
 export type AuthResponse = {
   user: User;
-  accessToken: string;
-  refreshToken: string;
 };

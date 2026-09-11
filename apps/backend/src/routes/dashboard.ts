@@ -7,7 +7,15 @@ import { getAuthUser } from '../types/auth.js';
 const summaryQuerySchema = z.object({
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
+  currency: z.string().trim().length(3).optional(),
 });
+
+type CurrencyBucket = {
+  total: number;
+  count: number;
+  byCategory: Map<string, number>;
+  byMonth: Map<string, number>;
+};
 
 export const dashboardRouter = Router();
 
@@ -17,6 +25,7 @@ dashboardRouter.get('/summary', async (req, res, next) => {
   try {
     const user = getAuthUser(req);
     const query = summaryQuerySchema.parse(req.query);
+    const currencyFilter = query.currency?.toUpperCase();
 
     const dateFilter =
       query.from || query.to
@@ -29,7 +38,11 @@ dashboardRouter.get('/summary', async (req, res, next) => {
         : {};
 
     const expenses = await prisma.expense.findMany({
-      where: { userId: user.id, ...dateFilter },
+      where: {
+        userId: user.id,
+        ...dateFilter,
+        ...(currencyFilter ? { currency: currencyFilter } : {}),
+      },
       select: {
         amount: true,
         category: true,
@@ -39,32 +52,50 @@ dashboardRouter.get('/summary', async (req, res, next) => {
       orderBy: { date: 'asc' },
     });
 
-    let total = 0;
-    const byCategory = new Map<string, number>();
-    const byMonth = new Map<string, number>();
+    const byCurrency = new Map<string, CurrencyBucket>();
 
     for (const expense of expenses) {
+      const currency = expense.currency.toUpperCase();
       const amount = Number(expense.amount);
-      total += amount;
+      const bucket = byCurrency.get(currency) ?? {
+        total: 0,
+        count: 0,
+        byCategory: new Map<string, number>(),
+        byMonth: new Map<string, number>(),
+      };
 
-      byCategory.set(
+      bucket.total += amount;
+      bucket.count += 1;
+      bucket.byCategory.set(
         expense.category,
-        (byCategory.get(expense.category) ?? 0) + amount,
+        (bucket.byCategory.get(expense.category) ?? 0) + amount,
       );
-
       const monthKey = expense.date.toISOString().slice(0, 7);
-      byMonth.set(monthKey, (byMonth.get(monthKey) ?? 0) + amount);
+      bucket.byMonth.set(
+        monthKey,
+        (bucket.byMonth.get(monthKey) ?? 0) + amount,
+      );
+      byCurrency.set(currency, bucket);
     }
 
+    const currencies = [...byCurrency.entries()]
+      .map(([currency, bucket]) => ({
+        currency,
+        total: bucket.total,
+        count: bucket.count,
+        byCategory: [...bucket.byCategory.entries()]
+          .map(([category, amount]) => ({ category, amount }))
+          .sort((a, b) => b.amount - a.amount),
+        byMonth: [...bucket.byMonth.entries()]
+          .map(([month, amount]) => ({ month, amount }))
+          .sort((a, b) => a.month.localeCompare(b.month)),
+      }))
+      .sort((a, b) => b.total - a.total || a.currency.localeCompare(b.currency));
+
     res.json({
-      total,
-      count: expenses.length,
-      byCategory: [...byCategory.entries()]
-        .map(([category, amount]) => ({ category, amount }))
-        .sort((a, b) => b.amount - a.amount),
-      byMonth: [...byMonth.entries()]
-        .map(([month, amount]) => ({ month, amount }))
-        .sort((a, b) => a.month.localeCompare(b.month)),
+      currencies,
+      // Convenience: primary = largest total bucket (or requested filter).
+      primary: currencies[0] ?? null,
     });
   } catch (err) {
     next(err);

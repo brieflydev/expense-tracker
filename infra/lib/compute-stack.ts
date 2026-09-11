@@ -168,6 +168,9 @@ export class ComputeStack extends cdk.Stack {
         NODE_ENV: 'production',
         PORT: '4000',
         CORS_ORIGIN: `https://${props.appHostname}`,
+        COOKIE_DOMAIN: '.briefly-learn.com',
+        JWT_ISSUER: 'expense-tracker-api',
+        JWT_AUDIENCE: 'expense-tracker-app',
       },
       secrets: {
         JWT_ACCESS_SECRET: ecs.Secret.fromSecretsManager(

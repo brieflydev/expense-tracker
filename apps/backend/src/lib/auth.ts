@@ -29,11 +29,16 @@ export async function verifyPassword(
 export function signAccessToken(payload: AccessTokenPayload): string {
   return jwt.sign(payload, env.JWT_ACCESS_SECRET, {
     expiresIn: ACCESS_TOKEN_TTL,
+    issuer: env.JWT_ISSUER,
+    audience: env.JWT_AUDIENCE,
   });
 }
 
 export function verifyAccessToken(token: string): AccessTokenPayload {
-  return jwt.verify(token, env.JWT_ACCESS_SECRET) as AccessTokenPayload;
+  return jwt.verify(token, env.JWT_ACCESS_SECRET, {
+    issuer: env.JWT_ISSUER,
+    audience: env.JWT_AUDIENCE,
+  }) as AccessTokenPayload;
 }
 
 export function createRefreshTokenValue(): string {
@@ -57,32 +62,56 @@ export async function revokeRefreshToken(refreshToken: string): Promise<void> {
   await prisma.refreshToken.deleteMany({ where: { tokenHash } });
 }
 
+/**
+ * Atomically consume a refresh token and issue a replacement.
+ * Concurrent refreshes with the same token: only one wins; others get null.
+ */
 export async function rotateRefreshToken(
   refreshToken: string,
 ): Promise<{ userId: string; email: string; newRefreshToken: string } | null> {
   const tokenHash = hashToken(refreshToken);
-  const existing = await prisma.refreshToken.findUnique({
-    where: { tokenHash },
-    include: { user: true },
-  });
 
-  if (!existing || existing.expiresAt < new Date()) {
-    if (existing) {
-      await prisma.refreshToken.delete({ where: { id: existing.id } });
-    }
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.refreshToken.findUnique({
+        where: { tokenHash },
+        include: { user: true },
+      });
+
+      if (!existing) {
+        return null;
+      }
+
+      if (existing.expiresAt < new Date()) {
+        await tx.refreshToken.deleteMany({ where: { id: existing.id } });
+        return null;
+      }
+
+      const consumed = await tx.refreshToken.deleteMany({
+        where: { id: existing.id, tokenHash },
+      });
+      if (consumed.count !== 1) {
+        return null;
+      }
+
+      const newRefreshToken = createRefreshTokenValue();
+      await tx.refreshToken.create({
+        data: {
+          userId: existing.userId,
+          tokenHash: hashToken(newRefreshToken),
+          expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
+        },
+      });
+
+      return {
+        userId: existing.userId,
+        email: existing.user.email,
+        newRefreshToken,
+      };
+    });
+  } catch {
     return null;
   }
-
-  await prisma.refreshToken.delete({ where: { id: existing.id } });
-
-  const newRefreshToken = createRefreshTokenValue();
-  await storeRefreshToken(existing.userId, newRefreshToken);
-
-  return {
-    userId: existing.userId,
-    email: existing.user.email,
-    newRefreshToken,
-  };
 }
 
 function hashToken(token: string): string {

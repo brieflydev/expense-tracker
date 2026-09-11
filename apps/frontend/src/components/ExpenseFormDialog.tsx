@@ -19,13 +19,15 @@ export type ExpenseFormValues = {
   date: string;
 };
 
-const emptyValues: ExpenseFormValues = {
-  amount: '',
-  currency: 'USD',
-  category: 'food',
-  description: '',
-  date: new Date().toISOString().slice(0, 10),
-};
+function createEmptyValues(): ExpenseFormValues {
+  return {
+    amount: '',
+    currency: 'USD',
+    category: 'food',
+    description: '',
+    date: new Date().toISOString().slice(0, 10),
+  };
+}
 
 type Props = {
   open: boolean;
@@ -44,7 +46,7 @@ export function ExpenseFormDialog({
   onClose,
   onSubmit,
 }: Props) {
-  const [values, setValues] = useState<ExpenseFormValues>(emptyValues);
+  const [values, setValues] = useState<ExpenseFormValues>(createEmptyValues);
 
   useEffect(() => {
     if (!open) return;
@@ -57,7 +59,7 @@ export function ExpenseFormDialog({
         date: initial.date.slice(0, 10),
       });
     } else {
-      setValues(emptyValues);
+      setValues(createEmptyValues());
     }
   }, [open, initial]);
 

@@ -2,11 +2,14 @@ import {
   Alert,
   Box,
   Grid,
+  MenuItem,
   Paper,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -36,38 +39,78 @@ const CHART_COLORS = [
   '#5c7a72',
 ];
 
-function formatMoney(amount: number): string {
-  return new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
+function formatMoney(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency,
+    }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)} ${currency}`;
+  }
 }
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const [currency, setCurrency] = useState<string>('');
+
   const summaryQuery = useQuery({
     queryKey: ['dashboard', 'summary'],
     queryFn: () => fetchDashboardSummary(),
   });
 
+  useEffect(() => {
+    if (!currency && summaryQuery.data?.primary) {
+      setCurrency(summaryQuery.data.primary.currency);
+    }
+  }, [currency, summaryQuery.data]);
+
+  const selected =
+    summaryQuery.data?.currencies.find((item) => item.currency === currency) ??
+    summaryQuery.data?.primary ??
+    null;
+
   const byCategory =
-    summaryQuery.data?.byCategory.map((item) => ({
+    selected?.byCategory.map((item) => ({
       ...item,
       label: labelCategory(item.category),
     })) ?? [];
 
-  const byMonth = summaryQuery.data?.byMonth ?? [];
+  const byMonth = selected?.byMonth ?? [];
+  const activeCurrency = selected?.currency ?? 'USD';
 
   return (
     <Stack spacing={3}>
-      <Box>
-        <Typography variant="h4" sx={{ mb: 0.5 }}>
-          {user?.name ? `Hi, ${user.name}` : 'Dashboard'}
-        </Typography>
-        <Typography color="text.secondary">
-          A snapshot of your spending by category and over time.
-        </Typography>
-      </Box>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={2}
+        sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' } }}
+      >
+        <Box>
+          <Typography variant="h4" sx={{ mb: 0.5 }}>
+            {user?.name ? `Hi, ${user.name}` : 'Dashboard'}
+          </Typography>
+          <Typography color="text.secondary">
+            Spending by category and over time, grouped by currency.
+          </Typography>
+        </Box>
+        {(summaryQuery.data?.currencies.length ?? 0) > 1 && (
+          <TextField
+            select
+            label="Currency"
+            size="small"
+            value={currency || summaryQuery.data?.primary?.currency || ''}
+            onChange={(e) => setCurrency(e.target.value)}
+            sx={{ minWidth: 120 }}
+          >
+            {summaryQuery.data?.currencies.map((item) => (
+              <MenuItem key={item.currency} value={item.currency}>
+                {item.currency}
+              </MenuItem>
+            ))}
+          </TextField>
+        )}
+      </Stack>
 
       {summaryQuery.isError && (
         <Alert severity="error">
@@ -80,14 +123,14 @@ export function DashboardPage() {
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
-            label="Total spent"
-            value={formatMoney(summaryQuery.data?.total ?? 0)}
+            label={`Total spent (${activeCurrency})`}
+            value={formatMoney(selected?.total ?? 0, activeCurrency)}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             label="Expenses logged"
-            value={String(summaryQuery.data?.count ?? 0)}
+            value={String(selected?.count ?? 0)}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -133,7 +176,9 @@ export function DashboardPage() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value) => formatMoney(Number(value ?? 0))}
+                    formatter={(value) =>
+                      formatMoney(Number(value ?? 0), activeCurrency)
+                    }
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -163,7 +208,9 @@ export function DashboardPage() {
                   <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip
-                    formatter={(value) => formatMoney(Number(value ?? 0))}
+                    formatter={(value) =>
+                      formatMoney(Number(value ?? 0), activeCurrency)
+                    }
                   />
                   <Bar dataKey="amount" fill="#0f6a5c" radius={[6, 6, 0, 0]} />
                 </BarChart>

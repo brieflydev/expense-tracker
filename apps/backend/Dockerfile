@@ -37,6 +37,7 @@ COPY --from=deps /app/package.json /app/package-lock.json ./
 COPY apps/backend/package.json ./apps/backend/package.json
 COPY apps/backend/prisma ./apps/backend/prisma
 COPY apps/backend/prisma.config.ts ./apps/backend/prisma.config.ts
+COPY apps/backend/certs ./apps/backend/certs
 COPY --from=build /app/apps/backend/dist ./apps/backend/dist
 COPY apps/backend/docker-entrypoint.sh ./apps/backend/docker-entrypoint.sh
 

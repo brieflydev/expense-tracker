@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import * as authApi from '../api/auth';
-import { getAccessToken, getRefreshToken } from '../api/client';
+import { clearLegacyTokens } from '../api/client';
 import type { User } from '../types';
 
 type AuthContextValue = {
@@ -27,13 +27,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    clearLegacyTokens();
 
     async function bootstrap() {
-      if (!getAccessToken() && !getRefreshToken()) {
-        if (active) setLoading(false);
-        return;
-      }
-
       try {
         const me = await authApi.fetchMe();
         if (active) setUser(me);
@@ -64,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(async () => {
-    await authApi.logout(getRefreshToken());
+    await authApi.logout();
     setUser(null);
   }, []);
 
