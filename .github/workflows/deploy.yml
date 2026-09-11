@@ -1,13 +1,18 @@
 name: Deploy
 
+# Run only after CI succeeds on main (or manual dispatch).
+# Avoids deploying in parallel with a failing typecheck.
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
+  actions: read
 
 concurrency:
   group: deploy-main
@@ -25,8 +30,14 @@ jobs:
   deploy:
     name: Build and deploy
     runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout commit that passed CI
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -41,7 +52,8 @@ jobs:
       - name: Set image metadata
         id: meta
         run: |
-          SHA_TAG="${GITHUB_SHA::12}"
+          SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          SHA_TAG="${SHA::12}"
           echo "sha_tag=${SHA_TAG}" >> "$GITHUB_OUTPUT"
           echo "frontend_image=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_FRONTEND }}" >> "$GITHUB_OUTPUT"
           echo "backend_image=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_BACKEND }}" >> "$GITHUB_OUTPUT"

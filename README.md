@@ -79,6 +79,9 @@ CI/CD uses GitHub Actions with AWS OIDC (no long-lived keys). Role ARN:
 
 `arn:aws:iam::565393069879:role/GitHubActionsExpenseTracker`
 
+- **CI** runs on every push/PR to `main` (typecheck).
+- **Deploy** starts only after CI succeeds on `main` (`workflow_run`), or via manual dispatch.
+
 ## Docker
 
 Images are built from the repo root (npm workspaces). Local container runtime is unavailable on this workshop VM; builds will run in GitHub Actions / ECS.
